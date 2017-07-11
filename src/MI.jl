@@ -1,24 +1,30 @@
-function mutual_info(response, class_id)
-    nstim = length(unique(class_id));
-    axis_MI= zeros(size(response,2));
-    nbins_dist = 10;
+function fasthist!(h, v, edg) 
+    n = length(edg)-1
+    y = 1./length(v)
+    for x in v
+        i = searchsortedfirst(edg, x)-1
+        if 1 <= i <= n
+            h[i] += y
+        end
+    end
+end
 
+function mutual_info(response::Array{Float64,2}, class_id::Array{Int,1})
+    nstim = length(unique(class_id))
+    axis_MI= zeros(Float64, size(response,2))
+    nbins_dist = 10 ::Int
+    histcounts = StatsBase.histrange(extrema(response)..., nbins_dist, :left)
+    probabilites = zeros(nstim,length(histcounts)-1); 
+    
     for axis_i in 1:size(response,2)
-        if var(response[:,axis_i])>0
-            histcounts = fit(Histogram,response[:,axis_i],nbins=nbins_dist,
-        closed=:left).edges[1];
-        else
-            histcounts = fit(Histogram,0*response[:,axis_i],nbins=nbins_dist,
-        closed=:left).edges[1];
-        end
+        resp = view(response, :, axis_i)
 
-        probabilites = zeros(nstim,length(histcounts)-1);
         for stim_i = 1:nstim
-            probabilites[stim_i,:] = fit(Histogram,response[class_id.==stim_i,axis_i],
-        histcounts, closed=:left).weights;
+            a = class_id.==stim_i 
+            fasthist!(probabilites[stim_i,:], view(resp,a), histcounts)
         end
 
-        probabilites = probabilites./sum(sum(probabilites));
+        probabilites ./= sum(probabilites);
 
         MI_aux = 0.;
         for bin_i = 1:length(histcounts)-1
@@ -27,11 +33,11 @@ function mutual_info(response, class_id)
                 p_stim = sum(probabilites[stim_i,:]); # stimulus probability
                 if probabilites[stim_i,bin_i]>0
                     PrGs = probabilites[stim_i,bin_i]; # response probability given stim
-                    MI_aux = MI_aux + PrGs*log2(PrGs/(p_value*p_stim)); # MI
+                    MI_aux += PrGs*log2(PrGs/(p_value*p_stim)); # MI
                 end
             end
         end
-
+        fill!(probabilites, 0.0)
         axis_MI[axis_i] = MI_aux;
     end
     return axis_MI
