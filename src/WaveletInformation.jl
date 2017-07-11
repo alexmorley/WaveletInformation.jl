@@ -1,5 +1,11 @@
 module WaveletInformation
 
-# package code goes here
+using Reexport
+@reexport using MLBase
+using ScikitLearn
+using Wavelets
 
-end # module
+include("wavelet_decode.jl")
+include("MI.jl")
+
+end
