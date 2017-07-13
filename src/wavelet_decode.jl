@@ -9,13 +9,12 @@ mutable struct WIopts
     minwvcoefs::Int  # minimum number of coefs to use
 end
 
+WIOpts() = WIopts(50, :max, 95, 25, 2)
 
-
-function wavedec2d{T<:AbstractFloat}(clips::Array{T,2},
-                   wavtype = WT.haar)
+function wavedec2d{T<:AbstractFloat}(clips::Array{T,2}, wavtype = WT.haar,
+                                     N = floor(Int,log2(size(clips,2))))
     # level of wavelet transform
     wt = wavelet(wavtype)
-    N = floor(Int,log2(size(clips,2)))
     # intialise array
     components_all = zeros(clips)
     for i in 1:size(components_all,1)
@@ -26,7 +25,7 @@ end
 
 @sk_import naive_bayes: GaussianNB
 function classify(sample, training, class_id_training, classifier = GaussianNB())
-    ScikitLearn.fit!(classifier, training[:,1:1], class_id_training[:,1:1])
+    ScikitLearn.fit!(classifier, training[:,:], class_id_training[:,:])
     ScikitLearn.predict(classifier, sample)
 end
 
@@ -59,12 +58,12 @@ function decode_spiketimes(actmatrix, class_id, opts::WIopts)
     
     dec_output = zeros(Int, ntrials)
     
-    wvmatrix = wavedec2d(actmatrix)
+    wvmatrix = wavedec2d(actmatrix, WT.haar, opts.nscales)
     for (trial_i, trainingtrials) in enumerate(LOOCV(ntrials))
         wv_coefs = wvmatrix[trainingtrials,:]
         class_id_training = class_id[trainingtrials]
         MI_bias = mutual_info_thresh(wv_coefs, class_id_training, opts.nsurr, opts.percentile, L)
-        selected_wvcoefs = select_coefs(wv_coefs, class_id_training, MI_bias, opts.minwvcoefs,
+        selected_wvcoefs,_ = select_coefs(wv_coefs, class_id_training, MI_bias, opts.minwvcoefs,
                                        opts.maxwvcoefs)
 
         training = wv_coefs[:,selected_wvcoefs]
@@ -75,3 +74,4 @@ function decode_spiketimes(actmatrix, class_id, opts::WIopts)
     
     return dec_output
 end
+

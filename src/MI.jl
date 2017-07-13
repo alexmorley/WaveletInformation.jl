@@ -37,15 +37,19 @@ function mutual_info(response, class_id)
     return axis_MI
 end
 
-function mutual_info_thresh(wvmatrix, class_id, nsurr, percentile, L)
-    MI_coefs_surrogate = zeros(nsurr,size(wvmatrix,2));
-    for surr_i = 1:nsurr  
+function surrogate_MI_coefs(wvmatrix, class_id, nsurr)
+    MI_coefs_surrogate = zeros(nsurr,size(wvmatrix,2))
+    for surr_i = 1:nsurr
         class_id_surrogate = shuffle(class_id);
         MI_coefs_surrogate[surr_i,:] = mutual_info(wvmatrix,class_id_surrogate);
     end
+    return MI_coefs_surrogate
+end
 
-    MI_thresholds = zeros(size(wvmatrix,2));
-    levelbounds = cumsum([0; L[1:end-1]]);
+function level_per_thresh(MI_coefs_surrogate,  percentile, L)
+    MI_thresholds = zeros(size(MI_coefs_surrogate,2))
+
+	levelbounds = cumsum([0; L[1:end-1]]);
     levelthres = zeros(1,length(L)-1);
     for level_i=1:length(L)-1
         level_coefs = levelbounds[level_i]+1:levelbounds[level_i+1];
@@ -55,6 +59,12 @@ function mutual_info_thresh(wvmatrix, class_id, nsurr, percentile, L)
         MI_thresholds[level_coefs] = levelthres[level_i];
     end
     return MI_thresholds
+end
+
+function mutual_info_thresh(wvmatrix, class_id, nsurr, percentile, L)
+    MI_coefs_surrogate = surrogate_MI_coefs(wvmatrix, class_id, nsurr)
+    MI_thresholds = level_per_thresh(MI_coefs_surrogate,  percentile, L)
+	return MI_thresholds
 end
 
 # rename to mi_select
@@ -77,5 +87,5 @@ function select_coefs(wv_coefs, class_id_training, MI_bias, minwvcoefs, maxwvcoe
         scatter(selected_wvcoefs, MI[selected_wvcoefs], color="r", alpha=0.5)
     end
     
-    return selected_wvcoefs
+    return selected_wvcoefs,(MI,unbiased_MI)
 end
