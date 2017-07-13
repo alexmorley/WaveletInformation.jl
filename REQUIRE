@@ -3,3 +3,7 @@ Reexport
 MLBase
 ScikitLearn
 Wavelets
+Combinatorics
+MultivariateStats
+GaussianMixtures
+Suppressor
