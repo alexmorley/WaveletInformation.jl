@@ -1,8 +1,6 @@
 export WIopts
 export decode_spikecounts, decode_spiketimes
 
-using MATLAB
-
 mutable struct WIopts
     nsurr::Int  # number of surrogates for computing shuffling distribution
     nscales::Union{Int, Symbol}
@@ -72,35 +70,6 @@ function decode_spiketimes(actmatrix, class_id, opts::WIopts)
         sample = wvmatrix[trial_i:trial_i,selected_wvcoefs];
 
         dec_output[trial_i] = classify(sample,training,class_id_training)[1]
-    end
-    
-    return dec_output
-end
-
-function decode_spiketimes(actmatrix, class_id, opts::WIopts)
-    class_labels = unique(class_id);
-    nclasses = length(class_labels);
-    ntrials = length(class_id); 
-    opts.nscales = opts.nscales == :max ?
-        floor(Int,log2(size(actmatrix,2))) : opts.nscales
-    L = [1; [2^n for n in 1:opts.nscales]];
-    
-    dec_output = zeros(Int, ntrials)
-    
-    wvmatrix = wavedec2d(actmatrix, WT.haar, opts.nscales)
-    for (trial_i, trainingtrials) in enumerate(LOOCV(ntrials))
-        wv_coefs = wvmatrix[trainingtrials,:]
-        class_id_training = class_id[trainingtrials]
-        MI_bias = mutual_info_thresh(wv_coefs, class_id_training, opts.nsurr, opts.percentile, L)
-        selected_wvcoefs,_ = select_coefs(wv_coefs, class_id_training, MI_bias, opts.minwvcoefs,
-                                       opts.maxwvcoefs)
-
-        training = wv_coefs[:,selected_wvcoefs]
-        sample = wvmatrix[trial_i:trial_i,selected_wvcoefs];
-        training .+= rand(size(training)...)./999999999
-
-        mat"$d = classify($(mxarray(sample)),$(mxarray(training)),$(mxarray(class_id_training)))"
-        dec_output[trial_i] = d #classify(sample,training,class_id_training)[1]
     end
     
     return dec_output
