@@ -1,38 +1,48 @@
-function mutual_info(response, class_id)
-    nstim = length(unique(class_id));
-    axis_MI= zeros(size(response,2));
-    nbins_dist = 10;
-
-    for axis_i in 1:size(response,2)
-        if var(response[:,axis_i])>0
-            histcounts = fit(Histogram,response[:,axis_i],nbins=nbins_dist,
-        closed=:left).edges[1];
-        else
-            histcounts = fit(Histogram,0*response[:,axis_i],nbins=nbins_dist,
-        closed=:left).edges[1];
+function fasthist!(h, v, edg) 
+    n = length(edg)-1
+    for x in v
+        i = searchsortedfirst(edg, x)-1
+        if 1 <= i <= n
+            h[i] .+= 1.
         end
+    end
+end
 
-        probabilites = zeros(nstim,length(histcounts)-1);
-        for stim_i = 1:nstim
-            probabilites[stim_i,:] = fit(Histogram,response[class_id.==stim_i,axis_i],
-        histcounts, closed=:left).weights;
-        end
-
-        probabilites = probabilites./sum(sum(probabilites));
-
-        MI_aux = 0.;
-        for bin_i = 1:length(histcounts)-1
-            p_value = sum(probabilites[:,bin_i]); # response probability
-            for stim_i = 1:nstim
-                p_stim = sum(probabilites[stim_i,:]); # stimulus probability
-                if probabilites[stim_i,bin_i]>0
-                    PrGs = probabilites[stim_i,bin_i]; # response probability given stim
-                    MI_aux = MI_aux + PrGs*log2(PrGs/(p_value*p_stim)); # MI
-                end
+function mi(probabilites)
+    a = 0.
+    @inbounds @fastmath for bin_i = 1:size(probabilites,2)
+        p_value = sum(probabilites[:,bin_i]); # response probability
+        for stim_i = 1:size(probabilites,1)
+            p_stim = sum(probabilites[stim_i,:]); # stimulus probability
+            if probabilites[stim_i,bin_i]>0
+                PrGs = probabilites[stim_i,bin_i]; # response probability given stim
+                a +=  PrGs*log2(PrGs/(p_value*p_stim)); # MI
             end
         end
+    end
+    return a
+end
 
-        axis_MI[axis_i] = MI_aux;
+function mutual_info(response, class_id)
+    nstim = length(unique(class_id));
+    nfet = size(response,2)
+    axis_MI= zeros(Float64,nfet);
+    nbins_dist = 10::Int
+    histcounts = StatsBase.histrange(extrema(response)..., nbins_dist,
+        :left)::StepRangeLen
+    probabilites = zeros(Float64,nstim,length(histcounts)-1); 
+    for axis_i in 1:nfet
+        resp = view(response, :, axis_i)
+
+        for stim_i = 1:nstim
+            fasthist!(view(probabilites,stim_i,:),resp[class_id.==stim_i],
+                histcounts);
+        end
+        probabilites ./= sum(probabilites);
+        
+        axis_MI[axis_i]=mi(probabilites)
+        
+        fill!(probabilites,0.0)
     end
     return axis_MI
 end
