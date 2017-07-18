@@ -39,16 +39,18 @@ function decode_spikecounts(actmatrix, class_id)
 
     ## Decode Spike Counts
     for (trial_i, trainingtrials) in enumerate(LOOCV(ntrials))
-        sample = spkcount[trial_i];
-        training = spkcount[trainingtrials];
-        class_id_training = class_id[trainingtrials]
+        sample = spkcount[trial_i:trial_i];
+        training = spkcount[trainingtrials, 1:1];
+        class_id_training = class_id[trainingtrials, 1:1]
         dec_output[trial_i] = classify(sample,training,class_id_training)[1]
     end
 
     return dec_output
 end
 
-function decode_spiketimes(actmatrix, class_id, opts::WIopts)
+function decode_spiketimes(actmatrix, class_id, opts::WIopts;
+                           fast=false::Bool,
+                           cross_val=LOOCV)
     class_labels = unique(class_id);
     nclasses = length(class_labels);
     ntrials = length(class_id); 
@@ -59,10 +61,14 @@ function decode_spiketimes(actmatrix, class_id, opts::WIopts)
     dec_output = zeros(Int, ntrials)
     
     wvmatrix = wavedec2d(actmatrix, WT.haar, opts.nscales)
-    for (trial_i, trainingtrials) in enumerate(LOOCV(ntrials))
+
+    fast && (MI_bias = mutual_info_thresh(wvmatrix, class_id,
+                                          opts.nsurr, opts.percentile, L))
+    for (trial_i, trainingtrials) in enumerate(cross_val(ntrials))
         wv_coefs = wvmatrix[trainingtrials,:]
         class_id_training = class_id[trainingtrials]
-        MI_bias = mutual_info_thresh(wv_coefs, class_id_training, opts.nsurr, opts.percentile, L)
+        fast || (MI_bias = mutual_info_thresh(wv_coefs, class_id_training,
+                                              opts.nsurr, opts.percentile, L))
         selected_wvcoefs,_ = select_coefs(wv_coefs, class_id_training, MI_bias, opts.minwvcoefs,
                                        opts.maxwvcoefs)
 
