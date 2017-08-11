@@ -24,7 +24,8 @@ function wavedec2d{T<:AbstractFloat}(clips::Array{T,2}, wavtype = WT.haar,
 end
 
 @sk_import naive_bayes: GaussianNB
-function classify(sample, training, class_id_training, classifier = GaussianNB())
+function classify(sample, training, class_id_training,
+                  classifier = GaussianNB())
     ScikitLearn.fit!(classifier, training[:,:], class_id_training[:,:])
     ScikitLearn.predict(classifier, sample)
 end
@@ -58,13 +59,14 @@ function decode_spiketimes(actmatrix, class_id, opts::WIopts;
         floor(Int,log2(size(actmatrix,2))) : opts.nscales
     L = [1; [2^n for n in 1:opts.nscales]];
     
-    dec_output = zeros(Int, ntrials)
+    dec_output = []
     
     wvmatrix = wavedec2d(actmatrix, WT.haar, opts.nscales)
 
     fast && (MI_bias = mutual_info_thresh(wvmatrix, class_id,
                                           opts.nsurr, opts.percentile, L))
-    for (trial_i, trainingtrials) in enumerate(cross_val(ntrials))
+    for trainingtrials in cross_val(ntrials)
+        testtrials = setdiff(1:ntrials, trainingtrials)
         wv_coefs = wvmatrix[trainingtrials,:]
         class_id_training = class_id[trainingtrials]
         fast || (MI_bias = mutual_info_thresh(wv_coefs, class_id_training,
@@ -73,9 +75,10 @@ function decode_spiketimes(actmatrix, class_id, opts::WIopts;
                                        opts.maxwvcoefs)
 
         training = wv_coefs[:,selected_wvcoefs]
-        sample = wvmatrix[trial_i:trial_i,selected_wvcoefs];
-
-        dec_output[trial_i] = classify(sample,training,class_id_training)[1]
+        sample = wvmatrix[testtrials,selected_wvcoefs];
+        clf = GaussianNB([1/nclasses for n in 1:nclasses])
+        
+        push!(dec_output, (class_id[testtrials],classify(sample,training,class_id_training, clf)))
     end
     
     return dec_output
