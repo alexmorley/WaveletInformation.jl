@@ -30,7 +30,8 @@ function classify(sample, training, class_id_training,
     ScikitLearn.predict(classifier, sample)
 end
 
-function decode_spikecounts(actmatrix, class_id)
+function decode_spikecounts(actmatrix, class_id;
+                           cross_val=LOOCV)
     spkcount = sum(actmatrix,2)
     class_labels = unique(class_id)
     nclasses = length(class_labels)
@@ -39,7 +40,7 @@ function decode_spikecounts(actmatrix, class_id)
     dec_output = zeros(Int, ntrials)
 
     ## Decode Spike Counts
-    for (trial_i, trainingtrials) in enumerate(LOOCV(ntrials))
+    for (trial_i, trainingtrials) in enumerate(cross_val(ntrials))
         sample = spkcount[trial_i:trial_i];
         training = spkcount[trainingtrials, 1:1];
         class_id_training = class_id[trainingtrials, 1:1]
