@@ -37,14 +37,17 @@ function decode_spikecounts(actmatrix, class_id;
     nclasses = length(class_labels)
     ntrials = length(spkcount)
     
-    dec_output = zeros(Int, ntrials)
+    dec_output = Tuple{Array{Int64,1},Array{Int64,1}}[]
 
     ## Decode Spike Counts
-    for (trial_i, trainingtrials) in enumerate(cross_val(ntrials))
-        sample = spkcount[trial_i:trial_i];
+    for trainingtrials in cross_val(ntrials)
+        testtrials = setdiff(1:ntrials, trainingtrials)
+        sample = spkcount[testtrials,1:1];
         training = spkcount[trainingtrials, 1:1];
-        class_id_training = class_id[trainingtrials, 1:1]
-        dec_output[trial_i] = classify(sample,training,class_id_training)[1]
+        class_id_training = class_id[trainingtrials]
+        clf = GaussianNB([1/nclasses for n in 1:nclasses])
+
+        push!(dec_output, (class_id[testtrials], classify(sample, training, class_id_training, clf)))
     end
 
     return dec_output
@@ -60,7 +63,7 @@ function decode_spiketimes(actmatrix, class_id, opts::WIopts;
         floor(Int,log2(size(actmatrix,2))) : opts.nscales
     L = [1; [2^n for n in 1:opts.nscales]];
     
-    dec_output = []
+    dec_output = Tuple{Array{Int64,1},Array{Int64,1}}[]
     
     wvmatrix = wavedec2d(actmatrix, WT.haar, opts.nscales)
 
