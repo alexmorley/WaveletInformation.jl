@@ -1,16 +1,3 @@
-function wavedec2d{T<:AbstractFloat}(clips::Array{T,2},
-                   wavtype = WT.haar)
-    # level of wavelet transform
-    wt = wavelet(wavtype)
-    N = floor(Int,log2(size(clips,2)))
-    # intialise array
-    components_all = zeros(clips)
-    for i in 1:size(components_all,1)
-        components_all[i,:] = dwt(clips[i,:], wt, N)
-    end
-    return components_all::Array{T,2}
-end
-
 function rungmm{T}(component::Array{T,1}, ngauss::Int, covtype=:full, nIter=30, perr=false)    
     if perr
         mm = GMM(ngauss, Float64.(component[:,1:1]),
