@@ -1,4 +1,6 @@
 # WaveletInformation - WIP
+[![Build](https://travis-ci.com/alexmorley/WaveletInformation.jl.svg?token=J1NxBfxGFhAmxxjYjuHi&branch=master)](https://travis-ci.com/alexmorley/WaveletInformation.jl)
+
 No guarantee this is correct yet. 
 
 Implemenents the WI method here: [Extracting information in spike time patterns with wavelets and information theory](http://jn.physiology.org/content/113/3/1015) Vítor Lopes-dos-Santos, Stefano Panzeri, Christoph Kayser, Mathew E Diamond, Rodrigo Quian Quiroga
