@@ -27,7 +27,7 @@ function oscillate(τ)
         if t < 0
             return 0.5
         else
-            return sin(2π*t)+0.5
+            return sin(π*t)+0.5
         end
     end
     [f(t) for t in τ]
@@ -39,10 +39,10 @@ function refractory(τ)
     f(t) = begin
         if t < 0
             return 0.5
-        elseif t < 0.5
-            return 0.9
-        elseif t < 1.0
-            return 0.1
+        elseif t < 0.05
+            return 0.95
+        elseif t < 0.1
+            return 0.05
         else
             return 0.5
         end
