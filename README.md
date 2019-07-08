@@ -1,5 +1,7 @@
 # WaveletInformation
-[![Build](https://travis-ci.com/alexmorley/WaveletInformation.jl.svg?token=J1NxBfxGFhAmxxjYjuHi&branch=master)](https://travis-ci.com/alexmorley/WaveletInformation.jl)
+[![Build](https://travis-ci.com/alexmorley/WaveletInformation.jl.svg?token=J1NxBfxGFhAmxxjYjuHi&branch=master)](https://travis-ci.com/alexmorley/WaveletInformation.jl)  
+
+Try it out using Binder: [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/alexmorley/WaveletInformation.jl/master)
 
 *ALPHA-release: Alpha software can be unstable and could cause crashes or data loss. Alpha software may not contain all of the features that are planned for the final version.*
 
